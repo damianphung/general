@@ -1,0 +1,78 @@
+#!/bin/bash
+#
+# Creates a new branch for the current SVN working directory. 
+#
+# If the --switch option is provided, the workspace gets switched to the new 
+# branch.
+#
+# Usage: svn-branch [-s|--switch] branch_name
+
+TRUNK_URL=`svn info | sed -n 's/URL: \(.*\)/\1/pg'`
+
+branch() {
+    local switch=$1; shift
+    local name=$1; shift
+
+    local url="`echo $TRUNK_URL | sed \"s/trunk/branches\/$name/g\"`"
+
+    svn copy "$TRUNK_URL" "$url" -m "Create branch $name"
+    local retcode=$?
+
+    if [ "$retcode" != "0" ]; then
+        echo "Error: svn copy failed with error code $retcode" >&2
+        exit $retcode
+    fi
+
+    if $switch; then
+
+        svn switch "$url"
+        local retcode=$?
+
+        if [ "$retcode" != "0" ]; then
+            echo "Error: svn switch failed with error code $retcode" >&2
+            exit $retcode
+        fi
+
+    fi
+}
+
+main() {
+
+    switch=false
+    branch_name=
+
+    # Check number of arguments
+    if [ $# -lt 1 ]; then
+        echo "No arguments provided." >&2
+        exit 1
+    fi
+
+    # check if we managed to get the repo URL
+    if [ -z "$TRUNK_URL" ]; then
+        echo "Unable to get svn URL. Are you in a valid working directory?" >&2
+        exit 1
+    fi
+
+    while [ ! -z "$1" ]; do
+        case $1 in
+        -s|--switch)
+            switch=true
+            ;;
+        *)
+            branch_name=$1
+            ;;
+        esac
+        shift
+    done
+
+    if [ -z "$branch_name" ]; then
+        echo "No branch name provided." >&2
+        exit 1
+    fi
+
+    branch $switch $branch_name
+
+}
+
+main "$@"
+
