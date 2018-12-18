@@ -1,0 +1,46 @@
+#!/bin/bash
+
+usage()
+{
+    echo "Usage: "`basename $0`" --arg1 <value1> --arg2 <value2>" 1>&2
+    echo "Example: "`basename $0`" --arg1 /home/${USER} --arg2 hello" 1>&2
+    exit 2
+}
+
+check_args()
+{
+    # parse getopts options
+    # -a -b args are required
+    # -c args not required
+    local tmp_getopts=`getopt -o hca:b: --long help,noarg,arg1:,arg2: -- "$@"`
+    [ $? != 0 ] && usage
+    eval set -- "$tmp_getopts"
+
+    while true; do
+        case "$1" in
+            -h|--help) usage;;
+            -a|--arg1) arg1=$2; shift 2;;
+            -b|--arg2) arg2=$2; shift 2;;
+            -c|--noarg) arg3=yes; shift 1;;
+            --) shift; break;;
+            *) usage;;
+        esac
+    done
+
+    [ x"${arg1}" = x ] && usage
+    [ x"${arg2}" = x ] && usage
+}
+
+do_function()
+{
+    echo "do_function"
+}
+
+main()
+{
+    check_args "$@"
+    do_function
+}
+
+main "$@"
+
